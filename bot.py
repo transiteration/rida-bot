@@ -33,12 +33,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "Hello! Welcome to RIDA - Rice Disease AI Assistant developed by ThanksCarbon. 🌿\n\n"
         "To get started, please tell me which language you'd like me to use for our conversation and for the diagnostic reports.\n\n"
         "You can simply type the name of the language, for example:\n"
-        "• 1. `English`\n"
-        "• 2. `Khmer` or `ខ្មែរ`\n"
-        "• 3. `Vietnamese` or `Tiếng Việt`.\n"
-        "• Or any other language\n"
-        "I'll do my best to provide answers and reports in your chosen language!"
-        "For more information tap or type /help"
+        "* `English`\n"
+        "* `Khmer` or `ខ្មែរ`\n"
+        "* `Vietnamese` or `Tiếng Việt`.\n"
+        "* Or any other language\n"
+        "I'll do my best to provide answers and reports in your chosen language!\n\n"
     )
     return CHOOSING_LANGUAGE
 
@@ -148,7 +147,6 @@ async def send_or_edit_long_message(
     """
     Edits an existing message with the first part of the text.
     If the text is too long, it sends the remaining parts as new messages.
-    Handles Markdown parsing errors by resending the faulty chunk as plain text.
     """
     if not text:
         await context.bot.edit_message_text(
@@ -233,10 +231,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "💬 Ask a Question\n"
         "You can ask me questions about a report or general questions about rice plant health.\n\n"
         "Here are the available commands:\n"
-        "• `/language` - Switch to a different language.\n"
-        "• `/clear` - Reset our conversation history.\n"
-        "• `/help` - Show this help message again.\n"
-        "• `/cancel` - Stop the language change operation."
+        "* /language - Switch to a different language.\n"
+        "* /clear - Reset our conversation history.\n"
+        "* /help - Show this help message again.\n"
+        "* /cancel - Stop the language change operation."
     )
     await update.message.reply_text(help_text, parse_mode=None)
 
@@ -342,10 +340,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
-            "• 1. `English`\n"
-            "• 2. `Khmer` or `ខ្មែរ`\n"
-            "• 3. `Vietnamese` or `Tiếng Việt`.\n"
-            "• Or any other language\n"
+            "* `English`\n"
+            "* `Khmer` or `ខ្មែរ`\n"
+            "* `Vietnamese` or `Tiếng Việt`.\n"
+            "* Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
         return
@@ -362,10 +360,10 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
-            "• 1. `English`\n"
-            "• 2. `Khmer` or `ខ្មែរ`\n"
-            "• 3. `Vietnamese` or `Tiếng Việt`.\n"
-            "• Or any other language\n"
+            "* `English`\n"
+            "* `Khmer` or `ខ្មែរ`\n"
+            "* `Vietnamese` or `Tiếng Việt`.\n"
+            "* Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
         return
