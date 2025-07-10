@@ -231,10 +231,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "💬 Ask a Question\n"
         "You can ask me questions about a report or general questions about rice plant health.\n\n"
         "Here are the available commands:\n"
-        "1. /language - Switch to a different language.\n"
-        "2. /clear - Reset our conversation history.\n"
-        "3. /help - Show this help message again.\n"
-        "4. /cancel - Stop the language change operation."
+        "1. /start - Start the bot."
+        "2. /language - Switch to a different language.\n"
+        "3. /clear - Reset our conversation history.\n"
+        "4. /help - Show this help message again.\n"
+        "5. /cancel - Stop the language change operation."
     )
     await update.message.reply_text(help_text, parse_mode=None)
 
