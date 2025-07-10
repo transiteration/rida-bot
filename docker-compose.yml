@@ -1,0 +1,8 @@
+services:
+  bot:
+    container_name: rida-bot
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - .env
