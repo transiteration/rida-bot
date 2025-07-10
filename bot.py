@@ -33,10 +33,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "Hello! Welcome to RIDA - Rice Disease AI Assistant developed by ThanksCarbon. 🌿\n\n"
         "To get started, please tell me which language you'd like me to use for our conversation and for the diagnostic reports.\n\n"
         "You can simply type the name of the language, for example:\n"
-        "* `English`\n"
-        "* `Khmer` or `ខ្មែរ`\n"
-        "* `Vietnamese` or `Tiếng Việt`.\n"
-        "* Or any other language\n"
+        "1. `English`\n"
+        "2. `Khmer` or `ខ្មែរ`\n"
+        "3. `Vietnamese` or `Tiếng Việt`.\n"
+        "4. Or any other language\n\n"
         "I'll do my best to provide answers and reports in your chosen language!\n\n"
     )
     return CHOOSING_LANGUAGE
@@ -59,7 +59,7 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     language = update.message.text
 
     checking_msg = await update.message.reply_text(
-        f"Checking if I can speak '{language}'..."
+        f"Changing the assistant language to '{language}'..."
     )
 
     try:
@@ -231,10 +231,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "💬 Ask a Question\n"
         "You can ask me questions about a report or general questions about rice plant health.\n\n"
         "Here are the available commands:\n"
-        "* /language - Switch to a different language.\n"
-        "* /clear - Reset our conversation history.\n"
-        "* /help - Show this help message again.\n"
-        "* /cancel - Stop the language change operation."
+        "1. /language - Switch to a different language.\n"
+        "2. /clear - Reset our conversation history.\n"
+        "3. /help - Show this help message again.\n"
+        "4. /cancel - Stop the language change operation."
     )
     await update.message.reply_text(help_text, parse_mode=None)
 
@@ -322,6 +322,28 @@ async def _process_image(
             thinking_message.message_id
         )
 
+        if report_id > 0 and report_id % 10 == 0:
+            logging.info(f"Report ID {report_id} reached. Resetting memory for chat {chat_id}.")
+            language = context.user_data.get("language")
+            context.user_data.clear()
+
+            if language:
+                context.user_data["language"] = language
+                state = new_chat()
+                state["language"] = language
+                context.user_data["state"] = state
+
+                reset_message_en = "To keep our conversation fresh and accurate, I have automatically cleared our chat history. I'm ready for new questions!"
+                reset_message = reset_message_en
+                try:
+                    prompt = f"You are a translation assistant. Translate the following text to {language}. Do not add any extra text or explanations.\n\nText to translate:\n{reset_message_en}"
+                    response = await llm.ainvoke(prompt)
+                    reset_message = response.content.strip()
+                except Exception as e:
+                    logging.error(f"Failed to generate translated reset message: {e}")
+                
+                await context.bot.send_message(chat_id, reset_message)
+
     except Exception as e:
         logging.error(f"An error occurred in _process_image: {e}")
         await context.bot.edit_message_text(
@@ -340,10 +362,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
-            "* `English`\n"
-            "* `Khmer` or `ខ្មែរ`\n"
-            "* `Vietnamese` or `Tiếng Việt`.\n"
-            "* Or any other language\n"
+            "1. `English`\n"
+            "2. `Khmer` or `ខ្មែរ`\n"
+            "3. `Vietnamese` or `Tiếng Việt`.\n"
+            "4. Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
         return
@@ -360,10 +382,10 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text(
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
-            "* `English`\n"
-            "* `Khmer` or `ខ្មែរ`\n"
-            "* `Vietnamese` or `Tiếng Việt`.\n"
-            "* Or any other language\n"
+            "1. `English`\n"
+            "2. `Khmer` or `ខ្មែរ`\n"
+            "3. `Vietnamese` or `Tiếng Việt`.\n"
+            "4. Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
         return
