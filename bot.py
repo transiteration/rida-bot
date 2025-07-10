@@ -231,7 +231,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "💬 Ask a Question\n"
         "You can ask me questions about a report or general questions about rice plant health.\n\n"
         "Here are the available commands:\n"
-        "1. /start - Start the bot."
+        "1. /start - Start the bot.\n"
         "2. /language - Switch to a different language.\n"
         "3. /clear - Reset our conversation history.\n"
         "4. /help - Show this help message again.\n"
