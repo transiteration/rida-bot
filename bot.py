@@ -404,7 +404,6 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         allowed_formats = ", ".join(t.split("/")[1].upper() for t in ALLOWED_MIME_TYPES)
         await update.message.reply_text(
             f"Sorry, I can only analyze image files. The allowed formats are: {allowed_formats}.\n"
-            "Please send the image as a 'Photo' for best results."
         )
         return
 
