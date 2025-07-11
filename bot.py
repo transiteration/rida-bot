@@ -25,6 +25,7 @@ CHOOSING_LANGUAGE = 1
 ALLOWED_MIME_TYPES = ["image/jpeg", "image/png"]
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Starts the conversation and asks for a language."""
     context.user_data.clear()
@@ -78,11 +79,15 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
         user = update.effective_user
 
-        confirmation_text_en = f"Great! I will provide my answers and reports in {language}."
+        confirmation_text_en = (
+            f"Great! I will provide my answers and reports in {language}."
+        )
         welcome_text_en_template = "Hi {user_mention}! I am RIDA - Rice Disease AI Assistant.\n\n📸 Send me a photo of a rice plant, and I'll analyze it for diseases and provide a detailed report.\n💬 You can ask me questions about a generated report or general questions about rice plant health."
 
         confirmation_text = confirmation_text_en
-        welcome_text = welcome_text_en_template.format(user_mention=user.mention_markdown())
+        welcome_text = welcome_text_en_template.format(
+            user_mention=user.mention_markdown()
+        )
 
         try:
             prompt = f"""You are a translation assistant. Translate the following text to {language}.
@@ -121,8 +126,8 @@ Text to translate:
     else:
         await context.bot.edit_message_text(
             text=f"I'm sorry, but I might not be able to generate reports in language '{language}'. "
-                 "This could be due to a typo or it might be a language I don't fully support yet.\n\n"
-                 "Please try another language.",
+            "This could be due to a typo or it might be a language I don't fully support yet.\n\n"
+            "Please try another language.",
             chat_id=update.effective_chat.id,
             message_id=checking_msg.message_id,
         )
@@ -135,7 +140,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "No problem! The language selection has been cancelled. How can I help you now?"
     )
     return ConversationHandler.END
-
 
 
 async def send_or_edit_long_message(
@@ -156,7 +160,7 @@ async def send_or_edit_long_message(
         )
         return
 
-    paragraphs = text.split('\n\n')
+    paragraphs = text.split("\n\n")
     chunks = []
     current_chunk = ""
     for paragraph in paragraphs:
@@ -164,8 +168,9 @@ async def send_or_edit_long_message(
             if current_chunk:
                 chunks.append(current_chunk)
                 current_chunk = ""
-            split_pos = paragraph.rfind(' ', 0, TELEGRAM_MAX_MESSAGE_LENGTH)
-            if split_pos == -1: split_pos = TELEGRAM_MAX_MESSAGE_LENGTH
+            split_pos = paragraph.rfind(" ", 0, TELEGRAM_MAX_MESSAGE_LENGTH)
+            if split_pos == -1:
+                split_pos = TELEGRAM_MAX_MESSAGE_LENGTH
             chunks.append(paragraph[:split_pos])
             paragraph = paragraph[split_pos:].lstrip()
 
@@ -197,7 +202,9 @@ async def send_or_edit_long_message(
         )
     except BadRequest as e:
         if "entity" in str(e).lower():
-            logging.warning(f"Markdown parse failed for chunk 0. Retrying without formatting. Error: {e}")
+            logging.warning(
+                f"Markdown parse failed for chunk 0. Retrying without formatting. Error: {e}"
+            )
             await context.bot.edit_message_text(
                 text=chunks[0],
                 chat_id=chat_id,
@@ -209,12 +216,12 @@ async def send_or_edit_long_message(
 
     for i, chunk in enumerate(chunks[1:], 1):
         try:
-            await context.bot.send_message(
-                chat_id=chat_id, text=chunk, parse_mode=None
-            )
+            await context.bot.send_message(chat_id=chat_id, text=chunk, parse_mode=None)
         except BadRequest as e:
             if "entity" in str(e).lower():
-                logging.warning(f"Markdown parse failed for chunk {i}. Retrying without formatting. Error: {e}")
+                logging.warning(
+                    f"Markdown parse failed for chunk {i}. Retrying without formatting. Error: {e}"
+                )
                 await context.bot.send_message(
                     chat_id=chat_id, text=chunk, parse_mode=None
                 )
@@ -284,7 +291,9 @@ async def _process_image(
     This includes downloading the file, calling the graph, and sending the response.
     """
     chat_id = update.message.chat_id
-    thinking_message = await context.bot.send_message(chat_id, "Analyzing your image... 🔬")
+    thinking_message = await context.bot.send_message(
+        chat_id, "Analyzing your image... 🔬"
+    )
 
     temp_file_path = None
     try:
@@ -317,14 +326,13 @@ async def _process_image(
         )
 
         await send_or_edit_long_message(
-            context,
-            chat_id,
-            final_answer,
-            thinking_message.message_id
+            context, chat_id, final_answer, thinking_message.message_id
         )
 
         if report_id > 0 and report_id % 10 == 0:
-            logging.info(f"Report ID {report_id} reached. Resetting memory for chat {chat_id}.")
+            logging.info(
+                f"Report ID {report_id} reached. Resetting memory for chat {chat_id}."
+            )
             language = context.user_data.get("language")
             context.user_data.clear()
 
@@ -342,7 +350,7 @@ async def _process_image(
                     reset_message = response.content.strip()
                 except Exception as e:
                     logging.error(f"Failed to generate translated reset message: {e}")
-                
+
                 await context.bot.send_message(chat_id, reset_message)
 
     except Exception as e:
@@ -435,10 +443,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
 
         await send_or_edit_long_message(
-            context,
-            chat_id,
-            final_answer,
-            thinking_message.message_id
+            context, chat_id, final_answer, thinking_message.message_id
         )
 
     except Exception as e:
@@ -477,7 +482,7 @@ def main() -> None:
         per_message=False,
         map_to_parent={
             ConversationHandler.END: ConversationHandler.END,
-        }
+        },
     )
 
     application.add_handler(conv_handler)
