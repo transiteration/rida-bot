@@ -403,7 +403,7 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if document.mime_type not in ALLOWED_MIME_TYPES:
         allowed_formats = ", ".join(t.split("/")[1].upper() for t in ALLOWED_MIME_TYPES)
         await update.message.reply_text(
-            f"Sorry, I can only analyze image files. The allowed formats are: {allowed_formats}.\n"
+            f"Sorry, I can only analyze image files.\nThe allowed formats are: {allowed_formats}.\n"
         )
         return
 
