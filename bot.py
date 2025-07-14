@@ -14,8 +14,8 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest
 
-from graph import app, new_chat, llm
 import storage
+from graph import app, new_chat, llm
 
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -150,7 +150,9 @@ Text to translate:
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels the current operation, like language selection."""
-    text = "No problem! The language selection has been cancelled. How can I help you now?"
+    text = (
+        "No problem! The language selection has been cancelled. How can I help you now?"
+    )
     await update.message.reply_text(text)
     storage.store_bot_response(update.effective_chat.id, text)
     return ConversationHandler.END
@@ -392,7 +394,6 @@ async def _process_image(
             message_id=thinking_message.message_id,
         )
         storage.store_bot_response(chat_id, error_text)
-
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
