@@ -1,6 +1,6 @@
 import os
 import logging
-import tempfile
+import datetime
 import mimetypes
 from dotenv import load_dotenv
 from telegram import Update, File as TelegramFile
@@ -15,6 +15,7 @@ from telegram.ext import (
 from telegram.error import BadRequest
 
 from graph import app, new_chat, llm
+import storage
 
 load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -30,7 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Starts the conversation and asks for a language."""
     context.user_data.clear()
     context.user_data["from_start"] = True
-    await update.message.reply_text(
+    text = (
         "Hello! Welcome to RIDA - Rice Disease AI Assistant developed by ThanksCarbon. 🌿\n\n"
         "To get started, please tell me which language you'd like me to use for our conversation and for the diagnostic reports.\n\n"
         "You can simply type the name of the language, for example:\n"
@@ -40,28 +41,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "4. Or any other language\n\n"
         "I'll do my best to provide answers and reports in your chosen language!\n\n"
     )
+    await update.message.reply_text(text)
+    storage.store_bot_response(update.effective_chat.id, text)
     return CHOOSING_LANGUAGE
 
 
 async def language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Allows user to change language."""
     current_lang = context.user_data.get("language")
+    chat_id = update.effective_chat.id
     if current_lang:
-        await update.message.reply_text(
-            f"Your current language is set to '{current_lang}'.\nWhat new language would you like to switch to?"
-        )
+        text = f"Your current language is set to '{current_lang}'.\nWhat new language would you like to switch to?"
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
     else:
-        await update.message.reply_text("Sure, what language would you like to use?")
+        text = "Sure, what language would you like to use?"
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
     return CHOOSING_LANGUAGE
 
 
 async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Sets the language for the conversation."""
     language = update.message.text
+    user = update.effective_user
+    chat_id = update.effective_chat.id
 
-    checking_msg = await update.message.reply_text(
-        f"Changing the assistant language to '{language}'..."
-    )
+    storage.store_message(chat_id, user.full_name, f"Set language to: {language}")
+
+    checking_msg_text = f"Changing the assistant language to '{language}'..."
+    checking_msg = await update.message.reply_text(checking_msg_text)
+    storage.store_bot_response(chat_id, checking_msg_text)
 
     try:
         prompt = f"Can you generate text in the language '{language}'? Please answer with only 'yes' or 'no'."
@@ -76,8 +86,6 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         state = context.user_data.get("state", new_chat())
         state["language"] = language
         context.user_data["state"] = state
-
-        user = update.effective_user
 
         confirmation_text_en = (
             f"Great! I will provide my answers and reports in {language}."
@@ -116,29 +124,35 @@ Text to translate:
 
         await context.bot.edit_message_text(
             text=confirmation_text,
-            chat_id=update.effective_chat.id,
+            chat_id=chat_id,
             message_id=checking_msg.message_id,
         )
+        storage.store_bot_response(chat_id, confirmation_text)
         if context.user_data.pop("from_start", False):
             await update.message.reply_markdown(welcome_text)
+            storage.store_bot_response(chat_id, welcome_text)
 
         return ConversationHandler.END
     else:
-        await context.bot.edit_message_text(
-            text=f"I'm sorry, but I might not be able to generate reports in language '{language}'. "
+        error_text = (
+            f"I'm sorry, but I might not be able to generate reports in language '{language}'. "
             "This could be due to a typo or it might be a language I don't fully support yet.\n\n"
-            "Please try another language.",
-            chat_id=update.effective_chat.id,
+            "Please try another language."
+        )
+        await context.bot.edit_message_text(
+            text=error_text,
+            chat_id=chat_id,
             message_id=checking_msg.message_id,
         )
+        storage.store_bot_response(chat_id, error_text)
         return CHOOSING_LANGUAGE
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels the current operation, like language selection."""
-    await update.message.reply_text(
-        "No problem! The language selection has been cancelled. How can I help you now?"
-    )
+    text = "No problem! The language selection has been cancelled. How can I help you now?"
+    await update.message.reply_text(text)
+    storage.store_bot_response(update.effective_chat.id, text)
     return ConversationHandler.END
 
 
@@ -152,6 +166,7 @@ async def send_or_edit_long_message(
     Edits an existing message with the first part of the text.
     If the text is too long, it sends the remaining parts as new messages.
     """
+    storage.store_bot_response(chat_id, text)
     if not text:
         await context.bot.edit_message_text(
             text="Sorry, I couldn't generate a response.",
@@ -245,11 +260,13 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "5. /cancel - Stop the language change operation."
     )
     await update.message.reply_text(help_text, parse_mode=None)
+    storage.store_bot_response(update.effective_chat.id, help_text)
 
 
 async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Clears the conversation history, keeping the current language setting."""
     language = context.user_data.get("language")
+    chat_id = update.effective_chat.id
     context.user_data.clear()
 
     if language:
@@ -272,11 +289,14 @@ async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
 
         await update.message.reply_text(confirmation_text)
+        storage.store_bot_response(chat_id, confirmation_text)
     else:
-        await update.message.reply_text(
+        text = (
             "Our conversation history has been cleared. ✨\n"
             "Please use /start to begin a new conversation and set your language."
         )
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
 
 
 async def _process_image(
@@ -291,18 +311,27 @@ async def _process_image(
     This includes downloading the file, calling the graph, and sending the response.
     """
     chat_id = update.message.chat_id
-    thinking_message = await context.bot.send_message(
-        chat_id, "Analyzing your image... 🔬"
-    )
+    user = update.effective_user
+    thinking_text = "Analyzing your image... 🔬"
+    thinking_message = await context.bot.send_message(chat_id, thinking_text)
+    storage.store_bot_response(chat_id, thinking_text)
 
-    temp_file_path = None
+    image_path = None
     try:
-        suffix = mimetypes.guess_extension(mime_type) or ".jpg"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            await file_to_download.download_to_drive(temp_file.name)
-            temp_file_path = temp_file.name
+        storage.setup_storage(chat_id)
+        chat_storage_path = storage.get_chat_storage_path(chat_id)
+        image_dir = os.path.join(chat_storage_path, "images")
 
-        with open(temp_file_path, "rb") as f:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        suffix = mimetypes.guess_extension(mime_type) or ".jpg"
+        image_filename = f"{timestamp}_{update.message.message_id}{suffix}"
+        image_path = os.path.join(image_dir, image_filename)
+
+        await file_to_download.download_to_drive(image_path)
+
+        storage.store_image(chat_id, user.full_name, image_path, caption)
+
+        with open(image_path, "rb") as f:
             image_bytes = f.read()
 
         state = context.user_data.get("state", new_chat())
@@ -352,23 +381,24 @@ async def _process_image(
                     logging.error(f"Failed to generate translated reset message: {e}")
 
                 await context.bot.send_message(chat_id, reset_message)
+                storage.store_bot_response(chat_id, reset_message)
 
     except Exception as e:
         logging.error(f"An error occurred in _process_image: {e}")
+        error_text = "I'm sorry, I encountered an issue while analyzing your image. It might be a temporary problem.\n\nCould you please try sending it again? If the issue persists, the file might be corrupted."
         await context.bot.edit_message_text(
-            text="I'm sorry, I encountered an issue while analyzing your image. It might be a temporary problem.\n\nCould you please try sending it again? If the issue persists, the file might be corrupted.",
+            text=error_text,
             chat_id=chat_id,
             message_id=thinking_message.message_id,
         )
-    finally:
-        if temp_file_path and os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+        storage.store_bot_response(chat_id, error_text)
+
 
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles compressed photo uploads for disease analysis."""
     if "language" not in context.user_data:
-        await update.message.reply_text(
+        text = (
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
             "1. `English`\n"
@@ -377,6 +407,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "4. Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
+        await update.message.reply_text(text)
+        storage.store_bot_response(update.effective_chat.id, text)
         return
 
     photo_file = await update.message.photo[-1].get_file()
@@ -387,8 +419,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles file uploads (documents) and checks for allowed image types."""
+    chat_id = update.effective_chat.id
     if "language" not in context.user_data:
-        await update.message.reply_text(
+        text = (
             "Hello there! To get started, we first need to set a language.\n\n"
             "You can simply type the name of the language, for example:\n"
             "1. `English`\n"
@@ -397,14 +430,16 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "4. Or any other language\n"
             "I'll do my best to provide answers and reports in your chosen language!"
         )
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
         return
 
     document = update.message.document
     if document.mime_type not in ALLOWED_MIME_TYPES:
         allowed_formats = ", ".join(t.split("/")[1].upper() for t in ALLOWED_MIME_TYPES)
-        await update.message.reply_text(
-            f"Sorry, I can only analyze image files.\nThe allowed formats are: {allowed_formats}.\n"
-        )
+        text = f"Sorry, I can only analyze image files.\nThe allowed formats are: {allowed_formats}.\n"
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
         return
 
     file_to_download = await document.get_file()
@@ -415,20 +450,27 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles text messages for follow-up questions or general queries."""
+    chat_id = update.effective_chat.id
     if "language" not in context.user_data:
-        await update.message.reply_text(
+        text = (
             "Hello there! To get started, we first need to set a language.\n\n"
             "Please tap or type /start to begin."
         )
+        await update.message.reply_text(text)
+        storage.store_bot_response(chat_id, text)
         return
 
-    chat_id = update.message.chat_id
-    thinking_message = await context.bot.send_message(chat_id, "Thinking... 🧠")
+    user = update.effective_user
+    question = update.message.text
+    storage.store_message(chat_id, user.full_name, question)
+
+    thinking_text = "Thinking... 🧠"
+    thinking_message = await context.bot.send_message(chat_id, thinking_text)
+    storage.store_bot_response(chat_id, thinking_text)
 
     try:
         state = context.user_data.get("state", new_chat())
         report_id = context.user_data.get("report_id", 0)
-        question = update.message.text
         inputs = {
             "chat_history": state.get("chat_history", []),
             "question": question,
@@ -447,11 +489,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     except Exception as e:
         logging.error(f"An error occurred in handle_text: {e}")
+        error_text = "I'm sorry, I'm having trouble processing your request right now. This could be a temporary issue on my end.\n\nPlease try asking again in a few moments."
         await context.bot.edit_message_text(
-            text="I'm sorry, I'm having trouble processing your request right now. This could be a temporary issue on my end.\n\nPlease try asking again in a few moments.",
+            text=error_text,
             chat_id=chat_id,
             message_id=thinking_message.message_id,
         )
+        storage.store_bot_response(chat_id, error_text)
 
 
 def main() -> None:
